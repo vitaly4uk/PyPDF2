@@ -591,7 +591,7 @@ class PdfFileWriter(object):
                         newobj = self._sweepIndirectReferences(externMap, newobj)
                         self._objects[idnum-1] = newobj
                         return newobj_ido
-                    except ValueError:
+                    except (ValueError, utils.PdfReadError):
                         # Unable to resolve the Object, returning NullObject instead.
                         warnings.warn("Unable to resolve [{}: {}], returning NullObject instead".format(
                             data.__class__.__name__, data
@@ -1794,7 +1794,7 @@ class PdfFileReader(object):
                     raise utils.PdfReadError("xref table read error")
                 readNonWhitespace(stream)
                 stream.seek(-1, 1)
-                firsttime = True; # check if the first time looking at the xref table
+                firsttime = True  # check if the first time looking at the xref table
                 while True:
                     num = readObject(stream, self)
                     if firsttime and num != 0:
@@ -1836,6 +1836,8 @@ class PdfFileReader(object):
                             offset, generation = line[:16].split(b_(" "))
                             offset, generation = int(offset), int(generation)
                         except ValueError:
+                            cnt += 1
+                            num += 1
                             continue
                         if generation not in self.xref:
                             self.xref[generation] = {}
