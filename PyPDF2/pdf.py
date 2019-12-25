@@ -1834,9 +1834,9 @@ class PdfFileReader(object):
 
                         try:
                             offset, generation = line[:16].split(b_(" "))
+                            offset, generation = int(offset), int(generation)
                         except ValueError:
                             continue
-                        offset, generation = int(offset), int(generation)
                         if generation not in self.xref:
                             self.xref[generation] = {}
                         if num in self.xref[generation]:
