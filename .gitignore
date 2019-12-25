@@ -4,4 +4,4 @@
 .tox
 build
 .idea/*
-
+.venv/

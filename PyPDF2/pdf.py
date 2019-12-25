@@ -1754,9 +1754,10 @@ class PdfFileReader(object):
         if debug: print(">>read", stream)
         # start at the end:
         stream.seek(-1, 2)
+        absoluteEndFilePos = stream.tell() + 1
         if not stream.tell():
             raise utils.PdfReadError('Cannot read an empty file')
-        last1K = stream.tell() - 1024 + 1 # offset of last 1024 bytes of stream
+        last1K = absoluteEndFilePos - 1024  # offset of last 1024 bytes of stream
         line = b_('')
         while line[:5] != b_("%%EOF"):
             if stream.tell() < last1K:
@@ -1778,6 +1779,28 @@ class PdfFileReader(object):
             line = self.readNextEndLine(stream)
             if line[:9] != b_("startxref"):
                 raise utils.PdfReadError("startxref not found")
+
+            # Let's see if we can find the xref table nearby when
+            # startxref is zero.
+            if startxref == 0:
+                last8K = 8192 if absoluteEndFilePos > 8192 else absoluteEndFilePos
+                stream.seek(-last8K, 2)
+                tmp = stream.read(last8K)
+                xref_loc = tmp.find(b_("xref"))
+                if xref_loc != -1:
+                    startxref = absoluteEndFilePos - last8K + xref_loc
+                else:
+                    # No explicit xref table, try finding a cross-reference stream.
+                    stream.seek(0, 0)
+                    found = False
+                    for look in range(5):
+                        if stream.read(1).isdigit():
+                            # This is not a standard PDF, consider adding a warning
+                            startxref += look
+                            found = True
+                            break
+                    if not found:
+                        raise utils.PdfReadError("Could not find xref table at specified location")
 
         # read all cross reference tables and their trailers
         self.xref = {}
