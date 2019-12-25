@@ -1832,7 +1832,10 @@ class PdfFileReader(object):
                         if line[-1] in b_("0123456789t"):
                             stream.seek(-1, 1)
 
-                        offset, generation = line[:16].split(b_(" "))
+                        try:
+                            offset, generation = line[:16].split(b_(" "))
+                        except ValueError:
+                            continue
                         offset, generation = int(offset), int(generation)
                         if generation not in self.xref:
                             self.xref[generation] = {}
